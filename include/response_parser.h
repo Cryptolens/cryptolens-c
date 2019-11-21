@@ -1,6 +1,6 @@
 #pragma once
 
-#include "error.h"
+#include "cryptolens.h"
 
 void
 cryptolens_RP_parse_activate_response(
@@ -20,6 +20,13 @@ cryptolens_RP_parse_DO_add(
 
 void
 cryptolens_RP_parse_DO_additive(
+  cryptolens_error_t *,
+  void *,
+  char const*
+);
+
+cryptolens_LK_t *
+cryptolens_RP_parse_license_key(
   cryptolens_error_t *,
   void *,
   char const*

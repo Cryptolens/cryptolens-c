@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "cJSON.h"
 
-#include "error.h"
+#include "cryptolens.h"
 
 
 size_t
@@ -168,16 +169,63 @@ end:
   cJSON_Delete(json);
 }
 
+static
 void
+LK_set_feature(
+  cryptolens_error_t * e,
+  cJSON * json,
+  int * feature,
+  char const*  feature_name
+)
+{
+  cJSON * f = NULL;
+
+  f = cJSON_GetObjectItemCaseSensitive(json, feature_name);
+  if (f == NULL || !cJSON_IsBool(f)) { cryptolens_set_error(e, 2, 4398, 0); goto end; }
+
+  *feature = f->valueint;
+
+end:
+  return;
+}
+
+cryptolens_LK_t *
 cryptolens_RP_parse_license_key(
   cryptolens_error_t * e,
   void * o,
-  char const* licenseKey
+  char const* license_key_string
 )
 {
+  cryptolens_LK_t * license_key = NULL;
+  cJSON * json = NULL;
+  cJSON * expires = NULL;
+
+  json = cJSON_Parse(license_key_string);
+  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+
+  license_key = (cryptolens_LK_t *)malloc(sizeof(cryptolens_LK_t));
+  if (license_key == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+
+  expires = cJSON_GetObjectItemCaseSensitive(json, "Expires");
+  if (expires == NULL || !cJSON_IsNumber(expires)) { cryptolens_set_error(e, 2, 9420, 0); goto end; }
+  license_key->expires = expires->valuedouble;
+
+  LK_set_feature(e, json, &(license_key->f1), "F1");
+  LK_set_feature(e, json, &(license_key->f2), "F2");
+  LK_set_feature(e, json, &(license_key->f3), "F3");
+  LK_set_feature(e, json, &(license_key->f4), "F4");
+  LK_set_feature(e, json, &(license_key->f5), "F5");
+  LK_set_feature(e, json, &(license_key->f6), "F6");
+  LK_set_feature(e, json, &(license_key->f7), "F7");
+  LK_set_feature(e, json, &(license_key->f8), "F8");
+
+end:
+  cJSON_Delete(json);
+
+  return license_key;
+
 #if 0
   size_t n;
-  cJSON * json = NULL;
   cJSON * result = NULL;
   cJSON * message = NULL;
   cJSON * licenseKey = NULL;

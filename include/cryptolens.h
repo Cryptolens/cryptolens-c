@@ -1,22 +1,38 @@
 #pragma once
 
+typedef struct cryptolens cryptolens_t;
+typedef struct cryptolens_DO cryptolens_DO_t;
+typedef struct cryptolens_LK cryptolens_LK_t;
+
 #include "error.h"
 #include "machine_code_computer.h"
 #include "request_handler.h"
 #include "response_parser.h"
 #include "signature_verifier.h"
 
-typedef struct cryptolens {
+struct cryptolens {
   cryptolens_RH_t * rh;
   cryptolens_signature_verifier_t * signature_verifier;
-} cryptolens_t;
+};
 
-typedef struct cryptolens_DO {
+struct cryptolens_LK {
+  long long expires;
+  int f1;
+  int f2;
+  int f3;
+  int f4;
+  int f5;
+  int f6;
+  int f7;
+  int f8;
+};
+
+struct cryptolens_DO {
   int id;
   char const* name;
   char const* string_value;
   int int_value;
-} cryptolens_DO_t;
+};
 
 cryptolens_t *
 cryptolens_init(
@@ -29,18 +45,23 @@ cryptolens_destroy(
 );
 
 void
+cryptolens_LK_destroy(
+  cryptolens_LK_t *
+);
+
+void
 cryptolens_DO_destroy(
   cryptolens_DO_t *
 );
 
-void *
+cryptolens_LK_t *
 cryptolens_handle_activate_response(
   cryptolens_error_t *,
   cryptolens_signature_verifier_t *,
   char const* 
 );
 
-void
+cryptolens_LK_t *
 cryptolens_activate(
   cryptolens_error_t *,
   cryptolens_t *,
@@ -217,7 +238,7 @@ cryptolens_DO_machine_code_decrement(
   char const* bound
 );
 
-void
+cryptolens_LK_t *
 cryptolens_IN_activate(
   cryptolens_error_t *,
   cryptolens_RH_t *,

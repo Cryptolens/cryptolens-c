@@ -34,6 +34,14 @@ cryptolens_destroy(
 }
 
 void
+cryptolens_LK_destroy(
+  cryptolens_LK_t * license_key
+)
+{
+  free(license_key);
+}
+
+void
 cryptolens_set_modulus_base64(
   cryptolens_error_t * e,
   cryptolens_t * o,
@@ -53,7 +61,7 @@ cryptolens_set_exponent_base64(
   cryptolens_SV_set_exponent_base64(e, o->signature_verifier, exponent_base64);
 }
 
-void *
+cryptolens_LK_t *
 cryptolens_handle_activate_response(
   cryptolens_error_t * e,
   cryptolens_signature_verifier_t * signature_verifier,
@@ -68,6 +76,8 @@ cryptolens_handle_activate_response(
   unsigned char * signature = NULL;
   size_t signature_len = 0;
 
+  cryptolens_LK_t * lk = NULL;
+
   int valid = 0;
 
   if (cryptolens_check_error(e)) { goto end; }
@@ -78,7 +88,9 @@ cryptolens_handle_activate_response(
   cryptolens_IN_decode_base64(e, signature_base64, &signature, &signature_len);
 
   valid = cryptolens_SV_verify(e, signature_verifier, license_key, license_key_len, signature, signature_len);
-  if (!valid) { cryptolens_weak_set_error(e, 1234, 2345, 589248); goto end; } // TODO: Update error code
+  if (!valid) { cryptolens_weak_set_error(e, 1234, 2345, 589248); goto end; }
+
+  lk = cryptolens_RP_parse_license_key(e, NULL, license_key);
 
 end:
   free(license_key);
@@ -86,10 +98,10 @@ end:
   free(license_key_base64);
   free(signature_base64);
 
-  return NULL;
+  return lk;
 }
 
-void
+cryptolens_LK_t *
 cryptolens_activate(
   cryptolens_error_t * e,
   cryptolens_t * o,
@@ -98,10 +110,10 @@ cryptolens_activate(
   char const* key
 )
 {
-  cryptolens_IN_activate(e, o->rh, o->signature_verifier, token, product_id, key);
+  return cryptolens_IN_activate(e, o->rh, o->signature_verifier, token, product_id, key);
 }
 
-void
+cryptolens_LK_t *
 cryptolens_IN_activate(
   cryptolens_error_t * e,
   cryptolens_RH_t * rh,
@@ -111,6 +123,7 @@ cryptolens_IN_activate(
   char const* key
 )
 {
+  cryptolens_LK_t * license_key = NULL;
   cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, rh, "api/key/Activate");
 
   char const* machine_code = cryptolens_MC_get_machine_code(e);
@@ -126,8 +139,10 @@ cryptolens_IN_activate(
 
   char * response = cryptolens_RHP_perform(e, r);
 
-  cryptolens_handle_activate_response(e, signature_verifier, response);
+  license_key = cryptolens_handle_activate_response(e, signature_verifier, response);
 
   free(response);
   cryptolens_RHP_destroy(r);
+
+  return license_key;
 }
