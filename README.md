@@ -34,5 +34,5 @@ make
 
 The example file can also be build manually with GCC or Clang using the following command (run from the root of the repository):
 ```
-gcc -Iinclude/ -Ithird_party/cJSON/ src/cryptolens.c src/decode_base64.c src/response_parser_cJSON.c src/signature_verifier_openssl.c third_party/cJSON/cJSON.c third_party/openbsd-base64/base64.c -lcrypto examples/example_external_activate.c
+gcc -Iinclude/ -Ithird_party/cJSON/ src/cryptolens.c src/data_object.c src/decode_base64.c src/error.c src/machine_code_computer_static.c src/request_handler_curl.c src/response_parser_cJSON.c src/signature_verifier_openssl.c third_party/cJSON/cJSON.c third_party/openbsd/base64.c third_party/openbsd/strlcpy.c -lcrypto -lssl -lcurl examples/example_activate.c
 ```
