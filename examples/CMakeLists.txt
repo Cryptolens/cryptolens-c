@@ -6,10 +6,26 @@ add_subdirectory ("../" "cryptolens-c")
 add_executable(example_external_activate example_external_activate.c)
 target_link_libraries(example_external_activate cryptolens)
 
-add_executable(example_data_object example_data_object.c)
-target_link_libraries(example_data_object cryptolens)
-target_link_libraries(example_data_object curl crypto ssl)
+add_executable(example_data_object_list example_data_object_list.c)
+target_link_libraries(example_data_object_list cryptolens)
+target_link_libraries(example_data_object_list curl crypto ssl)
 
 add_executable(example_activate example_activate.c)
 target_link_libraries(example_activate cryptolens)
 target_link_libraries(example_activate curl crypto ssl)
+
+add_executable(example_data_object_add  example_data_object_add.c)
+target_link_libraries(example_data_object_add cryptolens)
+target_link_libraries(example_data_object_add curl crypto ssl)
+
+add_executable(example_data_object_increment example_data_object_increment.c)
+target_link_libraries(example_data_object_increment cryptolens)
+target_link_libraries(example_data_object_increment curl crypto ssl)
+
+add_executable(example_data_object_decrement example_data_object_decrement.c)
+target_link_libraries(example_data_object_decrement cryptolens)
+target_link_libraries(example_data_object_decrement curl crypto ssl)
+
+add_executable(example_deactivate example_deactivate.c)
+target_link_libraries(example_deactivate cryptolens)
+target_link_libraries(example_deactivate curl crypto ssl)

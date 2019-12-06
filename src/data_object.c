@@ -3,6 +3,138 @@
 
 #include "cryptolens.h"
 
+void
+cryptolens_DOL_destroy(cryptolens_DOL_entry_t * o)
+{
+  free(o);
+}
+
+cryptolens_DOL_entry_t *
+list_core(
+  cryptolens_error_t * e,
+  cryptolens_RHP_builder_t * r,
+  char const* token,
+  char const* contains
+)
+{
+  cryptolens_RHP_add_argument(e, r, "token", token);
+  cryptolens_RHP_add_argument(e, r, "Contains", contains);
+  cryptolens_RHP_add_argument(e, r, "v", "1");
+
+  char * response = cryptolens_RHP_perform(e, r);
+
+  cryptolens_DOL_entry_t * data_objects = cryptolens_RP_parse_DO_list(e, NULL, response);
+
+  free(response);
+  cryptolens_RHP_destroy(r);
+
+  return data_objects;
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_all_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjects");
+
+  cryptolens_RHP_add_argument(e, r, "ShowAll", "true");
+  return list_core(e, r, token, contains);
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_global_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjects");
+
+  cryptolens_RHP_add_argument(e, r, "ReferencerType", "0");
+  return list_core(e, r, token, contains);
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_product_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* product_id,
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjects");
+
+  cryptolens_RHP_add_argument(e, r, "ReferencerType", "1");
+  cryptolens_RHP_add_argument(e, r, "ReferencerId", product_id);
+  return list_core(e, r, token, contains);
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_key_id_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* key_id,
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjects");
+
+  cryptolens_RHP_add_argument(e, r, "ReferencerType", "2");
+  cryptolens_RHP_add_argument(e, r, "ReferencerId", key_id);
+  return list_core(e, r, token, contains);
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_key_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* product_id,
+  char const* key,
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjectsToKey");
+
+  cryptolens_RHP_add_argument(e, r, "ProductId", product_id);
+  cryptolens_RHP_add_argument(e, r, "Key", key);
+  return list_core(e, r, token, contains);
+}
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_machine_code_list(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+
+  char const* product_id,
+  char const* key,
+  char const* machine_code,
+  char const* contains
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjectsToMachineCode");
+
+  cryptolens_RHP_add_argument(e, r, "ProductId", product_id);
+  cryptolens_RHP_add_argument(e, r, "Key", key);
+  cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
+  return list_core(e, r, token, contains);
+}
+
+// -------------------
+
 static
 int
 add_core(
@@ -292,65 +424,4 @@ cryptolens_DO_machine_code_decrement(
   cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
   cryptolens_RHP_add_argument(e, r, "Name", name);
   additive_core(e, r, token, int_value, enable_bound, bound);
-}
-
-// -------------------
-
-static
-void
-list_core(
-  cryptolens_error_t * e,
-  cryptolens_RHP_builder_t * r
-)
-{
-  cryptolens_RHP_add_argument(e, r, "token", "WyIxMjU5OSIsImdXc0drbm1kalZJZXdDYlhqU1g1QXZIbEs5U3ArSGI3c1RUNkdxRVkiXQ==");
-  cryptolens_RHP_add_argument(e, r, "v", "1");
-
-  char * response = cryptolens_RHP_perform(e, r);
-
-  printf("%s\n", response ? response : "Response is null");
-
-  free(response);
-
-  cryptolens_RHP_destroy(r);
-}
-
-void
-cryptolens_DO_product_list(
-  cryptolens_error_t * e,
-  cryptolens_t * o
-)
-{
-  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjects");
-
-  cryptolens_RHP_add_argument(e, r, "ReferencerType", "1");
-  cryptolens_RHP_add_argument(e, r, "ReferencerId", "5363");
-  list_core(e, r);
-}
-
-void
-cryptolens_DO_key_list(
-  cryptolens_error_t * e,
-  cryptolens_t * o
-)
-{
-  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjectsToKey");
-
-  cryptolens_RHP_add_argument(e, r, "ProductId", "5363");
-  cryptolens_RHP_add_argument(e, r, "Key", "BZBOR-NDUAC-GQXZR-CVWZX");
-  list_core(e, r);
-}
-
-void
-cryptolens_DO_machine_code_list(
-  cryptolens_error_t * e,
-  cryptolens_t * o
-)
-{
-  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, o->rh, "api/data/ListDataObjectsToMachineCode");
-
-  cryptolens_RHP_add_argument(e, r, "ProductId", "5363");
-  cryptolens_RHP_add_argument(e, r, "Key", "BZBOR-NDUAC-GQXZR-CVWZX");
-  cryptolens_RHP_add_argument(e, r, "MachineCode", "asdfasdf");
-  list_core(e, r);
 }

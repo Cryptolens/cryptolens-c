@@ -107,10 +107,53 @@ cryptolens_activate(
   cryptolens_t * o,
   char const* token,
   char const* product_id,
-  char const* key
+  char const* key,
+  char const* machine_code
 )
 {
-  return cryptolens_IN_activate(e, o->rh, o->signature_verifier, token, product_id, key);
+  return cryptolens_IN_activate(e, o->rh, o->signature_verifier, token, product_id, key, machine_code);
+}
+
+void
+cryptolens_deactivate(
+  cryptolens_error_t * e,
+  cryptolens_t * o,
+  char const* token,
+  char const* product_id,
+  char const* key,
+  char const* machine_code
+)
+{
+  cryptolens_IN_deactivate(e, o->rh, token, product_id, key, machine_code);
+}
+
+void
+cryptolens_IN_deactivate(
+  cryptolens_error_t * e,
+  cryptolens_RH_t * rh,
+  char const* token,
+  char const* product_id,
+  char const* key,
+  char const* machine_code
+)
+{
+  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, rh, "api/key/Deactivate");
+
+  if (machine_code == NULL) { machine_code = cryptolens_MC_get_machine_code(e); }
+
+  cryptolens_RHP_add_argument(e, r, "token", token);
+  cryptolens_RHP_add_argument(e, r, "ProductId", product_id);
+  cryptolens_RHP_add_argument(e, r, "Key", key);
+  cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
+  cryptolens_RHP_add_argument(e, r, "v", "1");
+
+  char * response = cryptolens_RHP_perform(e, r);
+  
+  //printf("%s\n", response);
+  // TODO: Check response
+
+  free(response);
+  cryptolens_RHP_destroy(r);
 }
 
 cryptolens_LK_t *
@@ -120,13 +163,14 @@ cryptolens_IN_activate(
   cryptolens_signature_verifier_t * signature_verifier,
   char const* token,
   char const* product_id,
-  char const* key
+  char const* key,
+  char const* machine_code
 )
 {
   cryptolens_LK_t * license_key = NULL;
   cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, rh, "api/key/Activate");
 
-  char const* machine_code = cryptolens_MC_get_machine_code(e);
+  if (machine_code == NULL) { machine_code = cryptolens_MC_get_machine_code(e); }
 
   cryptolens_RHP_add_argument(e, r, "token", token);
   cryptolens_RHP_add_argument(e, r, "ProductId", product_id);

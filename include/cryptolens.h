@@ -2,6 +2,7 @@
 
 typedef struct cryptolens cryptolens_t;
 typedef struct cryptolens_DO cryptolens_DO_t;
+typedef struct cryptolens_DOL_entry cryptolens_DOL_entry_t;
 typedef struct cryptolens_LK cryptolens_LK_t;
 
 #include "error.h"
@@ -16,7 +17,12 @@ struct cryptolens {
 };
 
 struct cryptolens_LK {
+  int product_id;
+  int id; // May be missing
+  char * key;
+  long long created;
   long long expires;
+  int period;
   int f1;
   int f2;
   int f3;
@@ -25,13 +31,31 @@ struct cryptolens_LK {
   int f6;
   int f7;
   int f8;
+  char * notes;
+  int block;
+  long long global_id;
+  void * customer;
+  void * activated_machines;
+  int trial_activation;
+  long long maxnoofmachines;
+  void * allowed_machines;
+  void * data_objects;
+  long long sign_date;
 };
 
 struct cryptolens_DO {
   int id;
-  char const* name;
-  char const* string_value;
+  char * name;
+  char * string_value;
   int int_value;
+};
+
+struct cryptolens_DOL_entry {
+  cryptolens_DO_t data_object;
+  cryptolens_DOL_entry_t * next;
+  cryptolens_DOL_entry_t * prev;
+  int referencer_type;
+  int referencer_id;
 };
 
 cryptolens_t *
@@ -67,6 +91,17 @@ cryptolens_activate(
   cryptolens_t *,
   char const*,
   char const*,
+  char const*,
+  char const*
+);
+
+void
+cryptolens_deactivate(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const*,
+  char const*,
+  char const*,
   char const*
 );
 
@@ -82,6 +117,70 @@ cryptolens_set_exponent_base64(
   cryptolens_error_t *,
   cryptolens_t *,
   char const*
+);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_all_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* contains
+);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_global_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* contains
+);
+
+void
+cryptolens_DOL_destroy(cryptolens_DOL_entry_t *);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_product_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* product_id,
+  char const* contains
+);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_key_id_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* key_id,
+  char const* contains
+);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_key_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* product_id,
+  char const* key,
+  char const* contains
+);
+
+cryptolens_DOL_entry_t *
+cryptolens_DO_machine_code_list(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const* token,
+
+  char const* product_id,
+  char const* key,
+  char const* machine_code,
+  char const* contains
 );
 
 
@@ -243,6 +342,17 @@ cryptolens_IN_activate(
   cryptolens_error_t *,
   cryptolens_RH_t *,
   cryptolens_signature_verifier_t *,
+  char const*,
+  char const*,
+  char const*,
+  char const*
+);
+
+void
+cryptolens_IN_deactivate(
+  cryptolens_error_t *,
+  cryptolens_RH_t *,
+  char const*,
   char const*,
   char const*,
   char const*

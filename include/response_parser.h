@@ -11,6 +11,13 @@ cryptolens_RP_parse_activate_response(
   char **
 );
 
+cryptolens_DOL_entry_t *
+cryptolens_RP_parse_DO_list(
+  cryptolens_error_t *,
+  void *,
+  char const*
+);
+
 int
 cryptolens_RP_parse_DO_add(
   cryptolens_error_t *,
