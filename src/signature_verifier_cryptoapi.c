@@ -5,7 +5,7 @@
 #include "Windows.h"
 #include "wincrypt.h"
 
- struct cryptolens_signature_verifier {
+struct cryptolens_signature_verifier {
   HCRYPTPROV hProv;
   HCRYPTKEY hPubKey;
 };
@@ -20,19 +20,24 @@ cryptolens_SV_init(
 {
   cryptolens_signature_verifier_t* o = NULL;
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 	  
   o = (cryptolens_signature_verifier_t*)malloc(sizeof(cryptolens_signature_verifier_t));
-  if (o == NULL) { cryptolens_set_error(e, 5, X, 0); goto end;  }
+  if (o == NULL) { cryptolens_set_error(e, 5, X, 0); goto error;  }
+
   o->hProv = 0;
   o->hPubKey = 0;
 
   if (!CryptAcquireContext(&(o->hProv), NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
     cryptolens_set_error(e, 5, X, 0);
+    goto error;
+  }
+
+  goto end;
+
+error:
     free(o);
     o = NULL;
-    goto end;
-  }
 
 end:
   return o;
@@ -44,8 +49,10 @@ cryptolens_SV_destroy(
   cryptolens_signature_verifier_t * o
 )
 {
-  if (o->hPubKey) { CryptDestroyKey(o->hPubKey); }
-  if (o->hProv)   { CryptReleaseContext(o->hProv, 0); }
+  if (o) {
+    if (o->hPubKey) { CryptDestroyKey(o->hPubKey); }
+    if (o->hProv)   { CryptReleaseContext(o->hProv, 0); }
+  }
   free(o);
 }
 
@@ -75,10 +82,10 @@ cryptolens_SV_set_modulus_base64(
   BLOBHEADER *blobheader = NULL;
   RSAPUBKEY *rsapubkey = NULL;
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   cryptolens_IN_decode_base64(e, modulus_base64, &modulus, &modulus_len);
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 #if 0
   modulus_len = b64_pton(modulus_base64, NULL, 0);
   modulus = (unsigned char *)malloc(modulus_len);
@@ -90,11 +97,11 @@ cryptolens_SV_set_modulus_base64(
   for (size_t i = 0, j = modulus_len; i + 1 < j; ++i, --j) { unsigned char t = modulus[i]; modulus[i] = modulus[j-1]; modulus[j-1] = t; }
 
   blob_len = sizeof(BLOBHEADER) + sizeof(RSAPUBKEY) + modulus_len;
-  if (blob_len      > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto end; }
-  if (modulus_len*8 > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto end; }
+  if (blob_len      > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto error; }
+  if (modulus_len*8 > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto error; }
 
   blob = (unsigned char *)malloc(blob_len);
-  if (blob == NULL) { cryptolens_set_error(e, 5, X, 0); goto end; }
+  if (blob == NULL) { cryptolens_set_error(e, 5, X, 0); goto error; }
 
   blobheader = (BLOBHEADER *)blob;
   blobheader->bType = PUBLICKEYBLOB;
@@ -115,9 +122,12 @@ cryptolens_SV_set_modulus_base64(
   if (!CryptImportKey(o->hProv, blob, (DWORD)blob_len, 0, 0, &(o->hPubKey))) {
     DWORD code = GetLastError();
     cryptolens_set_error(e, 5, X, code);
-    goto end;
+    goto error;
   }
 
+  goto end;
+
+error:
 end:
   free(blob);
   free(modulus);
@@ -139,13 +149,13 @@ cryptolens_SV_verify(
   unsigned char * signature_lsb = NULL;
   HCRYPTHASH hHash = 0;  // Initialized following https://docs.microsoft.com/sv-se/windows/win32/seccrypto/example-c-program-signing-a-hash-and-verifying-the-hash-signature
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
-  if (message_len > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto end; }
-  if (signature_len > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto end; }
+  if (message_len > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto error; }
+  if (signature_len > DWORD_MAX) { cryptolens_set_error(e, 5, X, 0); goto error; }
 
   signature_lsb = (unsigned char *)malloc(signature_len);
-  if (signature_lsb == NULL) { cryptolens_set_error(e, 5, X, 0); goto end; }
+  if (signature_lsb == NULL) { cryptolens_set_error(e, 5, X, 0); goto error; }
 
   // CryptoAPI assumes things are LSB or whatever, other way around from other people.
   for (size_t i = 0; i < signature_len; ++i) { signature_lsb[i] = signature[signature_len - 1 - i]; }
@@ -153,23 +163,26 @@ cryptolens_SV_verify(
   if (!CryptCreateHash(o->hProv, CALG_SHA_256, 0, 0, &hHash)) {
     DWORD code = GetLastError();
     cryptolens_set_error(e, 5, X, code);
-    goto end;
+    goto error;
   }
 
   if (!CryptHashData(hHash, message, message_len, 0)) {
     DWORD code = GetLastError();
     cryptolens_set_error(e, 5, X, code);
-    goto end;
+    goto error;
   }
 
   if (!CryptVerifySignature(hHash, signature_lsb, signature_len, o->hPubKey, NULL, 0)) {
     DWORD code = GetLastError();
     cryptolens_set_error(e, 5, X, code);
-    goto end;
+    goto error;
   }
 
   result = 1;
 
+  goto end;
+
+error:
 end:
   free(signature_lsb);
   if (hHash) { CryptDestroyHash(hHash); }

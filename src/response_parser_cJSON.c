@@ -29,58 +29,60 @@ cryptolens_RP_parse_activate_response(
 
   int X = 1234;
 
+  if (cryptolens_check_error(e)) { goto error; }
+
   *licenseKeyBase64 = NULL;
   *signatureBase64 = NULL;
 
-  if (cryptolens_check_error(e)) { goto end; }
-
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
       cryptolens_set_error(e, 2, X, 0);
-      goto end;
+      goto error;
     }
+    // TODO Parse message and set reason correctly
     cryptolens_set_error(e, 2, X, 0);
-    goto end;
+    goto error;
   }
 
   licenseKey = cJSON_GetObjectItemCaseSensitive(json, "licenseKey");
-  if (licenseKey == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (licenseKey == NULL) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   signature = cJSON_GetObjectItemCaseSensitive(json, "signature");
-  if (signature == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (signature == NULL) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   if (!cJSON_IsString(licenseKey) || !cJSON_IsString(signature)) {
     cryptolens_set_error(e, 2, X, 0);
-    goto end;
+    goto error;
   }
 
   n = strlen(licenseKey->valuestring);
   *licenseKeyBase64 = malloc(n + 1);
-  if (*licenseKeyBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (*licenseKeyBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto error; }
   strlcpy(*licenseKeyBase64, licenseKey->valuestring, n+1);
 
   n = strlen(signature->valuestring);
   *signatureBase64 = malloc(n + 1);
-  if (*signatureBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (*signatureBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto error; }
   strlcpy(*signatureBase64, signature->valuestring, n+1);
 
-end:
-  cJSON_Delete(json);
+  goto end;
 
-  if (cryptolens_check_error(e)) {
+error:
     free(*licenseKeyBase64);
     free(*signatureBase64);
 
     *licenseKeyBase64 = NULL;
     *signatureBase64 = NULL;
-  }
+
+end:
+  cJSON_Delete(json);
 }
 
 cryptolens_DOL_entry_t *
@@ -104,33 +106,35 @@ cryptolens_RP_parse_DO_list(
 
   int X = 1239;
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
       // TODO: Set unknown server reply
       cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      goto error;
     }
     // TODO: parser message
     cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+    goto error;
   }
 
   data_objects = cJSON_GetObjectItemCaseSensitive(json, "dataObjects");
-  if (data_objects == NULL || !cJSON_IsArray(data_objects)) { cryptolens_set_error(e, 2, 1240, 0); goto end; }
+  if (data_objects == NULL || !cJSON_IsArray(data_objects)) { cryptolens_set_error(e, 2, 1240, 0); goto error; }
 
   n = cJSON_GetArraySize(data_objects);
-  if (n == 0) { goto end; }
+  if (n == 0) { goto error; }
 
-  l = malloc(sizeof(cryptolens_DOL_entry_t)*n); // TODO: calloc?
+  l = (cryptolens_DOL_entry_t *)calloc(n, sizeof(cryptolens_DOL_entry_t));
+  if (!l) { cryptolens_set_error(e, 2, 1300, 0); goto error; }
+
   l_ret = l;
   // TODO: error check
 
@@ -140,25 +144,25 @@ cryptolens_RP_parse_DO_list(
     l->next = child->next == NULL ? NULL : l+1;
 
     field = cJSON_GetObjectItemCaseSensitive(child, "id");
-    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1241, 0); goto end; }
+    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1241, 0); goto error; }
     l->data_object.id = field->valueint;
 
     field = cJSON_GetObjectItemCaseSensitive(child, "name");
-    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1242, 0); goto end; }
+    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1242, 0); goto error; }
     m = strlen(field->valuestring);
     l->data_object.name = malloc(m+1);
-    // TODO: Error check
+    if (!l->data_object.name) { cryptolens_set_error(e, 2, 1301, 0); goto error; }
     strlcpy(l->data_object.name, field->valuestring, m+1);
 
     field = cJSON_GetObjectItemCaseSensitive(child, "intValue");
-    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1243, 0); goto end; }
+    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1243, 0); goto error; }
     l->data_object.int_value = field->valueint;
 
     field = cJSON_GetObjectItemCaseSensitive(child, "stringValue");
-    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1244, 0); goto end; }
+    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1244, 0); goto error; }
     m = strlen(field->valuestring);
     l->data_object.string_value = malloc(m+1);
-    // TODO: Error check
+    if (!l->data_object.string_value) { cryptolens_set_error(e, 2, 1302, 0); goto error; }
     strlcpy(l->data_object.string_value, field->valuestring, m+1);
 
     field = cJSON_GetObjectItemCaseSensitive(child, "referencerType");
@@ -171,6 +175,11 @@ cryptolens_RP_parse_DO_list(
     l += 1;
   }
 
+  goto end;
+
+error:
+  // TODO: traverse l_ret and free any strings
+  free(l_ret);
 
 end:
   cJSON_Delete(json);
@@ -195,31 +204,34 @@ cryptolens_RP_parse_DO_add(
 
   int X = 1234;
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (!json) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (!result || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
       // TODO: Set unknown server reply
       cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      goto error;
     }
     // TODO: parser message
     cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+    goto error;
   }
 
   id = cJSON_GetObjectItemCaseSensitive(json, "id");
-  if (id == NULL || !cJSON_IsNumber(id)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (!id || !cJSON_IsNumber(id)) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   data_object = id->valueint;
 
+  goto end;
+
+error:
 end:
   cJSON_Delete(json);
 
@@ -240,26 +252,29 @@ cryptolens_RP_parse_DO_additive(
 
   int X = 1234;
 
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
       // TODO: Set unknown server reply
       cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      goto error;
     }
     // TODO: parser message
     cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+    goto error;
   }
 
+  goto end;
+
+error:
 end:
   cJSON_Delete(json);
 }
@@ -276,10 +291,13 @@ LK_set_feature(
   cJSON * f = NULL;
 
   f = cJSON_GetObjectItemCaseSensitive(json, feature_name);
-  if (f == NULL || !cJSON_IsBool(f)) { cryptolens_set_error(e, 2, 4398, 0); goto end; }
+  if (f == NULL || !cJSON_IsBool(f)) { cryptolens_set_error(e, 2, 4398, 0); goto error; }
 
   *feature = f->valueint;
 
+  goto end;
+
+error:
 end:
   return;
 }
@@ -295,14 +313,16 @@ cryptolens_RP_parse_license_key(
   cJSON * json = NULL;
   cJSON * field = NULL;
 
+  if (cryptolens_check_error(e)) { goto error; }
+
   json = cJSON_Parse(license_key_string);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   license_key = (cryptolens_LK_t *)malloc(sizeof(cryptolens_LK_t));
-  if (license_key == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (license_key == NULL) { cryptolens_set_error(e, 2, 1, 0); goto error; }
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Expires");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9420, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9420, 0); goto error; }
   license_key->expires = field->valuedouble;
 
   LK_set_feature(e, json, &(license_key->f1), "F1");
@@ -315,28 +335,35 @@ cryptolens_RP_parse_license_key(
   LK_set_feature(e, json, &(license_key->f8), "F8");
 
   field = cJSON_GetObjectItemCaseSensitive(json, "ProductId");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9421, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9421, 0); goto error; }
   license_key->product_id = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Created");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9422, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9422, 0); goto error; }
   license_key->created = field->valuedouble;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Period");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9423, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9423, 0); goto error; }
   license_key->period = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Block");
-  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9424, 0); goto end; }
+  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9424, 0); goto error; }
   license_key->block = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "TrialActivation");
-  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9425, 0); goto end; }
+  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9425, 0); goto error; }
   license_key->trial_activation = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "SignDate");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9426, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9426, 0); goto error; }
   license_key->sign_date = field->valuedouble;
+
+  goto end;
+
+error:
+  // TODO: When we add more fields to license_key we need to free any initialized ones
+  free(license_key);
+  license_key = NULL;
 
 end:
   cJSON_Delete(json);

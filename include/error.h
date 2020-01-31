@@ -1,5 +1,7 @@
 #pragma once
 
+#define CRYPTOLENS_ER_ALLOC_FAILED 12
+
 typedef struct cryptolens_error {
   // TODO: Change from int to uint64_t?
   int call;
