@@ -4,6 +4,10 @@
 
 typedef struct cryptolens_signature_verifier cryptolens_signature_verifier_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 cryptolens_signature_verifier_t *
 cryptolens_SV_init(
   cryptolens_error_t *
@@ -37,3 +41,7 @@ cryptolens_SV_verify(
   unsigned char const*,
   size_t
 );
+
+#ifdef __cplusplus
+}
+#endif

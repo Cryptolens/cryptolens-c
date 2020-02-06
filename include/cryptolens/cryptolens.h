@@ -58,6 +58,10 @@ struct cryptolens_DOL_entry {
   int referencer_id;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 cryptolens_t *
 cryptolens_init(
   cryptolens_error_t *
@@ -357,3 +361,7 @@ cryptolens_IN_deactivate(
   char const*,
   char const*
 );
+
+#ifdef __cplusplus
+}
+#endif

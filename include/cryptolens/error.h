@@ -10,6 +10,10 @@ typedef struct cryptolens_error {
   int extra;
 } cryptolens_error_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int
 cryptolens_check_error(
   cryptolens_error_t *
@@ -35,3 +39,7 @@ cryptolens_weak_set_error(
   int,
   int
 );
+
+#ifdef __cplusplus
+}
+#endif
