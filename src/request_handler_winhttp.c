@@ -9,7 +9,7 @@
 #include "error.h"
 #include "request_handler.h"
 
-char const* BASE_URL = "app.cryptolens.io";
+static char const BASE_URL[] = "app.cryptolens.io";
 
 struct cryptolens_RH {
   HINTERNET hSession;
@@ -35,7 +35,7 @@ cryptolens_RH_new(cryptolens_error_t * e)
   if (cryptolens_check_error(e)) { goto error; }
 
   o = malloc(sizeof(cryptolens_RH_t));
-  if (o == NULL) { cryptolens_set_error(104, 298, 210); goto error; }
+  if (o == NULL) { cryptolens_set_error(CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 1); goto error; }
 
   o->hSession = WinHttpOpen( L"Cryptolens WinHTTP"
                            , WINHTTP_ACCESS_TYPE_DEFAULT_PROXY
@@ -73,7 +73,7 @@ cryptolens_RHP_new(cryptolens_error_t *e, cryptolens_RH_t * rh, char const* meth
   if (cryptolens_check_error(e)) { goto error; }
 
   o = (cryptolens_RHP_builder_t *)malloc(sizeof(cryptolens_RHP_builder_t));
-  if (o == NULL) { cryptolens_set_error(e, 888, 1984, 22); goto error; }
+  if (o == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 2); goto error; }
 
   n = MultiByteToWideChar(CP_UTF8, 0, BASE_URL, -1, NULL, 0);
   if (n == 0) { cryptolens_set_error(e, 888, 1984, 23); goto error; }
@@ -127,7 +127,7 @@ check_realloc(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
   if (o->postfields_pos == o->postfields_len) {
     size_t new_len = o->postfields_len == 0 ? 128 : 2*o->postfields_len;
     o->postfields = realloc(o->postfields, new_len);
-    if (o->postfields == NULL) { cryptolens_set_error(e, 23, 34, 98); o->postfields_pos = 0; o->postfields_len = 0; return 1;}
+    if (o->postfields == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 3); o->postfields_pos = 0; o->postfields_len = 0; return 1;}
     o->postfields_len = new_len;
   }
 
@@ -245,7 +245,7 @@ cryptolens_RHP_perform(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
       if (new_len - pos < bytes) { new_len = pos + bytes; }
 
       response = realloc(response, new_len);
-      if (!response) { cryptolens_set_error(e, 298, 10, 44); pos = 0; len = 0; goto error; }
+      if (!response) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 4); pos = 0; len = 0; goto error; }
       len = new_len;
     }
 
@@ -256,7 +256,7 @@ cryptolens_RHP_perform(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
   }
 
 //  null_terminate2(resp);
-  if (pos == len) { response = realloc(response, len + 1); }
+  if (pos == len) { response = realloc(response, len + 1); } // TODO CHECK realloc success
   response[pos++] = '\0';
 
   goto end;

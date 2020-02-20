@@ -8,7 +8,7 @@
 #include "error.h"
 #include "request_handler.h"
 
-char const* BASE_URL = "https://app.cryptolens.io/";
+static char const BASE_URL[] = "https://app.cryptolens.io/";
 
 struct cryptolens_RH {
   CURL *curl;
@@ -39,10 +39,10 @@ cryptolens_RH_new(cryptolens_error_t * e)
   if (cryptolens_check_error(e)) { goto error; }
 
   o = malloc(sizeof(cryptolens_RH_t));
-  if (!o) { cryptolens_set_error(e, 1, 2, 3); goto error; } // TODO error
+  if (!o) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 1); goto error; }
 
   o->curl = curl_easy_init();  
-  if (!o->curl) { cryptolens_set_error(e, 1, 2, 3); goto error; } // TODO error
+  if (!o->curl) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 2, 0); goto error; }
 
   goto end;
 
@@ -79,11 +79,11 @@ cryptolens_RHP_new(cryptolens_error_t *e, cryptolens_RH_t * rh, char const* meth
   if (cryptolens_check_error(e)) { goto error; }
 
   o = (cryptolens_RHP_builder_t *)malloc(sizeof(cryptolens_RHP_builder_t));
-  if (!o) { cryptolens_set_error(e, 1, 2, 3); goto error; } // TODO error code
+  if (!o) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 2); goto error; }
   n = strlen(BASE_URL);
   m = strlen(method);
   url = (char *)malloc(n + m + 1);
-  if (!url) { cryptolens_set_error(e, 1, 2, 3); goto error; } // TODO error code
+  if (!url) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 3); goto error; }
 
   pos = 0;
   for (size_t i = 0; i < n; ++i) { url[pos++] = BASE_URL[i]; }
@@ -125,7 +125,7 @@ check_realloc(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
   if (o->postfields_pos == o->postfields_len) {
     size_t new_len = o->postfields_len == 0 ? 128 : 2*o->postfields_len;
     o->postfields = realloc(o->postfields, new_len);
-    if (o->postfields == NULL) { cryptolens_set_error(e, 23, 34, 98); o->postfields_pos = 0; o->postfields_len = 0; return 1;}
+    if (o->postfields == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 4); o->postfields_pos = 0; o->postfields_len = 0; return 1;}
     o->postfields_len = new_len;
   }
 
@@ -186,7 +186,7 @@ handle_response(char * ptr, size_t size, size_t nmemb, void *userdata)
     if (r->pos == r->len) {
       size_t new_len = r->len == 0 ? 128 : 2*r->len;
       r->response = realloc(r->response, new_len);
-      if (r->response == NULL) { cryptolens_set_error(r->e, 892, 1, 98); r->pos = 0; r->len = 0; return 0; }
+      if (r->response == NULL) { cryptolens_set_error(r->e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 5); r->pos = 0; r->len = 0; return 0; }
       r->len = new_len;
     }
 
@@ -204,7 +204,7 @@ null_terminate2(cryptolens_error_t * e, response_t * r)
     // TODO: Stupid to possibly double length when we are just adding a single character...
     size_t new_len = r->len == 0 ? 128 : 2*r->len;
     r->response = realloc(r->response, new_len);
-    if (r->response == NULL) { cryptolens_set_error(r->e, 892, 1, 99); r->pos = 0; r->len = 0; return; }
+    if (r->response == NULL) { cryptolens_set_error(r->e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 6); r->pos = 0; r->len = 0; return; }
     r->len = new_len;
   }
 
@@ -215,13 +215,12 @@ char *
 cryptolens_RHP_perform(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
 {
   response_t * resp = NULL;
-  // TODO: Change this to mallocing a default size
-  char * response = "";
+  char * response = NULL;
 
   if (cryptolens_check_error(e)) { goto error; }
 
   resp = malloc(sizeof(response_t));
-  if (resp == NULL) { cryptolens_set_error(e, 918, 829, 29); goto error; }
+  if (resp == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 7); goto error; }
 
   resp->e = e;
   resp->response = NULL;
@@ -237,16 +236,16 @@ cryptolens_RHP_perform(cryptolens_error_t * e, cryptolens_RHP_builder_t * o)
 
   CURLcode cc;
   cc = curl_easy_setopt(o->rh->curl, CURLOPT_URL, o->url);
-  if (cc != CURLE_OK) { cryptolens_set_error(e, 8920, 10, 3); goto error; }
+  if (cc != CURLE_OK) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 10, 3); goto error; }
   cc = curl_easy_setopt(o->rh->curl, CURLOPT_WRITEFUNCTION, handle_response);
-  if (cc != CURLE_OK) { cryptolens_set_error(e, 8920, 10, 4); goto error; }
+  if (cc != CURLE_OK) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 10, 4); goto error; }
   cc = curl_easy_setopt(o->rh->curl, CURLOPT_WRITEDATA, resp);
-  if (cc != CURLE_OK) { cryptolens_set_error(e, 8920, 10, 5); goto error; }
+  if (cc != CURLE_OK) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 10, 5); goto error; }
   cc = curl_easy_setopt(o->rh->curl, CURLOPT_POSTFIELDS, o->postfields);
-  if (cc != CURLE_OK) { cryptolens_set_error(e, 8920, 10, 6); goto error; }
+  if (cc != CURLE_OK) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 10, 6); goto error; }
 
   cc = curl_easy_perform(o->rh->curl);
-  if (cc != CURLE_OK) { cryptolens_set_error(e, 8920, 10, 7); goto error; }
+  if (cc != CURLE_OK) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 10, 7); goto error; }
 
   null_terminate2(e, resp);
   if (cryptolens_check_error(e)) { goto error; }
@@ -259,7 +258,7 @@ error:
   if (resp) {
     free(resp->response);
   }
-  response = "";
+  response = NULL;
 end:
   free(resp);
 

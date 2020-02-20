@@ -34,5 +34,6 @@ cryptolens_MC_set_machine_code(
   machine_code = malloc(n);
   if (machine_code == NULL) { machine_code = ""; should_free = 0; return; }
 
+  // TODO: Check return value? Not sure there is much point though, something is seriously wrong if it fails
   strlcpy(machine_code, s, n);
 }

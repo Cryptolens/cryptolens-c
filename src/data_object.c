@@ -8,9 +8,12 @@ cryptolens_DOL_destroy(cryptolens_DOL_entry_t * o)
 {
   if (o == NULL) { return; }
 
+  while (o->prev) { o = o->prev; }
+
   free(o);
 }
 
+static
 cryptolens_DOL_entry_t *
 list_core(
   cryptolens_error_t * e,

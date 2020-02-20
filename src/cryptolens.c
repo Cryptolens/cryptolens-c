@@ -5,8 +5,6 @@
 #include "internal/decode_base64.h"
 #include "cryptolens.h"
 
-#define CRYPTOLENS_ES_MAIN 234
-
 cryptolens_t *
 cryptolens_init(
   cryptolens_error_t * e
@@ -68,6 +66,8 @@ cryptolens_set_modulus_base64(
   char const* modulus_base64
 )
 {
+  if (!o) { return; }
+
   cryptolens_SV_set_modulus_base64(e, o->signature_verifier, modulus_base64);
 }
 
@@ -78,6 +78,8 @@ cryptolens_set_exponent_base64(
   char const* exponent_base64
 )
 {
+  if (!o) { return; }
+
   cryptolens_SV_set_exponent_base64(e, o->signature_verifier, exponent_base64);
 }
 
@@ -108,7 +110,7 @@ cryptolens_handle_activate_response(
   cryptolens_IN_decode_base64(e, signature_base64, &signature, &signature_len);
 
   valid = cryptolens_SV_verify(e, signature_verifier, license_key, license_key_len, signature, signature_len);
-  if (!valid) { cryptolens_weak_set_error(e, 1234, 2345, 589248); goto error; } // TODO:
+  if (!valid) { cryptolens_weak_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_INVALID_SIGNATURE, 0); goto error; }
 
   lk = cryptolens_RP_parse_license_key(e, NULL, license_key);
 

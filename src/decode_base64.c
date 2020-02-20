@@ -18,16 +18,17 @@ cryptolens_IN_decode_base64(
   if (cryptolens_check_error(e)) { goto error; }
 
   l = b64_pton(s, NULL, 0);
-  if (l < 0) { cryptolens_set_error(e, 3, 1, l); goto error; } // TODO: Update error code
+  if (l < 0) { cryptolens_set_error(e, CRYPTOLENS_ES_BASE64, 4, l); goto error; }
 
   *decoded_len = l;
   *decoded = (unsigned char *)malloc(*decoded_len);
-  if (*decoded == NULL) { *decoded_len = 0; cryptolens_set_error(e, 3, 2, 0); goto error; } // TODO: Update error code
+  if (*decoded == NULL) { *decoded_len = 0; cryptolens_set_error(e, CRYPTOLENS_ES_BASE64, CRYPTOLENS_ER_ALLOC_FAILED, 0); goto error; }
 
   b64_pton(s, *decoded, *decoded_len);
+
+  goto end;
 
 error:
 end:
   return;
 }
-
