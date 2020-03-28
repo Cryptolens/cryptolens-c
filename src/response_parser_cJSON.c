@@ -5,11 +5,48 @@
 
 #include "cJSON.h"
 
-#include "cryptolens.h"
+#include "cryptolens/cryptolens.h"
 
 
 size_t
 strlcpy(char *dst, const char *src, size_t dsize);
+
+static
+int
+activate_parse_server_error_message(char const* server_response)
+{
+  if (server_response == NULL) { return CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY; }
+
+  if (0 == strcmp(server_response, "Unable to authenticate.")) {
+    return CRYPTOLENS_ER_INVALID_ACCESS_TOKEN;
+  }
+
+  if (0 == strcmp(server_response, "Access denied.")) {
+    return CRYPTOLENS_ER_ACCESS_DENIED;
+  }
+
+  if (0 == strcmp(server_response, "The input parameters were incorrect.")) {
+    return CRYPTOLENS_ER_INCORRECT_INPUT_PARAMETER;
+  }
+
+  if (0 == strcmp(server_response, "Could not find the product.")) {
+    return CRYPTOLENS_ER_PRODUCT_NOT_FOUND;
+  }
+
+  if (0 == strcmp(server_response, "Could not find the key.")) {
+    return CRYPTOLENS_ER_KEY_NOT_FOUND;
+  }
+
+  if (0 == strcmp(server_response, "The key is blocked and cannot be accessed.")) {
+    return CRYPTOLENS_ER_KEY_BLOCKED;
+  }
+
+  if (0 == strcmp(server_response, "Cannot activate the new device as the limit has been reached.")) {
+    return CRYPTOLENS_ER_DEVICE_LIMIT_REACHED;
+  }
+
+  return CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY;
+}
 
 void
 cryptolens_RP_parse_activate_response(
@@ -27,60 +64,180 @@ cryptolens_RP_parse_activate_response(
   cJSON * licenseKey = NULL;
   cJSON * signature = NULL;
 
-  int X = 1234;
+  if (cryptolens_check_error(e)) { goto error; }
 
   *licenseKeyBase64 = NULL;
   *signatureBase64 = NULL;
 
-  if (cryptolens_check_error(e)) { goto end; }
-
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 1, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 2, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
-      cryptolens_set_error(e, 2, X, 0);
-      goto end;
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
     }
-    cryptolens_set_error(e, 2, X, 0);
-    goto end;
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
   }
 
   licenseKey = cJSON_GetObjectItemCaseSensitive(json, "licenseKey");
-  if (licenseKey == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (licenseKey == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 5, 0); goto error; }
 
   signature = cJSON_GetObjectItemCaseSensitive(json, "signature");
-  if (signature == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (signature == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 6, 0); goto error; }
 
   if (!cJSON_IsString(licenseKey) || !cJSON_IsString(signature)) {
-    cryptolens_set_error(e, 2, X, 0);
-    goto end;
+    cryptolens_set_error(e, CRYPTOLENS_ES_RP, 7, 0);
+    goto error;
   }
 
   n = strlen(licenseKey->valuestring);
   *licenseKeyBase64 = malloc(n + 1);
-  if (*licenseKeyBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (*licenseKeyBase64 == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 8, 0); goto error; }
   strlcpy(*licenseKeyBase64, licenseKey->valuestring, n+1);
 
   n = strlen(signature->valuestring);
   *signatureBase64 = malloc(n + 1);
-  if (*signatureBase64 == NULL) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (*signatureBase64 == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 9, 0); goto error; }
   strlcpy(*signatureBase64, signature->valuestring, n+1);
 
-end:
-  cJSON_Delete(json);
+  goto end;
 
-  if (cryptolens_check_error(e)) {
+error:
     free(*licenseKeyBase64);
     free(*signatureBase64);
 
     *licenseKeyBase64 = NULL;
     *signatureBase64 = NULL;
+
+end:
+  cJSON_Delete(json);
+}
+
+void
+cryptolens_RP_parse_deactivate_response(
+  cryptolens_error_t * e,
+  void * o,
+  char const* response
+)
+{
+  size_t n;
+  cJSON * json = NULL;
+  cJSON * result = NULL;
+  cJSON * message = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  json = cJSON_Parse(response);
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 39, 0); goto error; }
+
+  result = cJSON_GetObjectItemCaseSensitive(json, "result");
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 40, 0); goto error; }
+
+  if (result->valueint != 0) {
+    message = cJSON_GetObjectItemCaseSensitive(json, "message");
+    if (message == NULL || !cJSON_IsString(message)) {
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
+    }
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
   }
+
+  goto end;
+
+error:
+end:
+  cJSON_Delete(json);
+}
+
+static
+cryptolens_DOL_entry_t *
+parse_DO_list(
+  cryptolens_error_t * e,
+  cJSON * data_objects
+)
+{
+  size_t n = 0;
+  size_t m = 0;
+  cryptolens_DOL_entry_t * l = NULL;
+  cryptolens_DOL_entry_t * l_ret = NULL;
+
+  cJSON * child = NULL;
+  cJSON * field = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+  if (!data_objects) { goto end; }
+
+  n = cJSON_GetArraySize(data_objects);
+  if (n == 0) { goto error; }
+
+  l = (cryptolens_DOL_entry_t *)calloc(n, sizeof(cryptolens_DOL_entry_t));
+  if (!l) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, CRYPTOLENS_ER_ALLOC_FAILED, 0); goto error; }
+
+  l_ret = l;
+
+  child = data_objects->child;
+  while (child != NULL) {
+    l->prev = child->prev == NULL ? NULL : l-1;
+    l->next = child->next == NULL ? NULL : l+1;
+
+    field = cJSON_GetObjectItem(child, "id");
+    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 15, 0); goto error; }
+    l->data_object.id = field->valueint;
+
+    field = cJSON_GetObjectItem(child, "name");
+    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 16, 0); goto error; }
+    m = strlen(field->valuestring);
+    l->data_object.name = malloc(m+1);
+    if (!l->data_object.name) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 17, 0); goto error; }
+    strlcpy(l->data_object.name, field->valuestring, m+1);
+
+    field = cJSON_GetObjectItem(child, "intValue");
+    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 18, 0); goto error; }
+    l->data_object.int_value = field->valueint;
+
+    field = cJSON_GetObjectItem(child, "stringValue");
+    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 19, 0); goto error; }
+    m = strlen(field->valuestring);
+    l->data_object.string_value = malloc(m+1);
+    if (!l->data_object.string_value) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 20, 0); goto error; }
+    strlcpy(l->data_object.string_value, field->valuestring, m+1);
+
+    field = cJSON_GetObjectItem(child, "referencerType");
+    l->referencer_type = cJSON_IsNumber(field) ? field->valueint : -1;
+
+    field = cJSON_GetObjectItem(child, "referencerId");
+    l->referencer_id = cJSON_IsNumber(field) ? field->valueint : -1;
+
+    child = child->next;
+    l += 1;
+  }
+
+  goto end;
+
+error:
+  if (l_ret) {
+    l = l_ret;
+    while (l->next) {
+      free(l->data_object.name);
+      free(l->data_object.string_value);
+    }
+    free(l_ret);
+    l_ret = NULL;
+  }
+
+end:
+  return l_ret;
 }
 
 cryptolens_DOL_entry_t *
@@ -96,89 +253,44 @@ cryptolens_RP_parse_DO_list(
   cJSON * result = NULL;
   cJSON * message = NULL;
   cJSON * data_objects = NULL;
-  cJSON * child = NULL;
 
-  cJSON * field = NULL;
-  cryptolens_DOL_entry_t * l = NULL;
-  cryptolens_DOL_entry_t * l_ret = NULL;
+  cryptolens_DOL_entry_t * list = NULL;
 
-  int X = 1239;
-
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 10, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 11, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
-      // TODO: Set unknown server reply
-      cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
     }
-    // TODO: parser message
-    cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
   }
 
   data_objects = cJSON_GetObjectItemCaseSensitive(json, "dataObjects");
-  if (data_objects == NULL || !cJSON_IsArray(data_objects)) { cryptolens_set_error(e, 2, 1240, 0); goto end; }
+  if (data_objects == NULL || !cJSON_IsArray(data_objects)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 14, 0); goto error; }
 
-  n = cJSON_GetArraySize(data_objects);
-  if (n == 0) { goto end; }
+  list = parse_DO_list(e, data_objects); 
 
-  l = malloc(sizeof(cryptolens_DOL_entry_t)*n); // TODO: calloc?
-  l_ret = l;
-  // TODO: error check
+  goto end;
 
-  child = data_objects->child;
-  while (child != NULL) {
-    l->prev = child->prev == NULL ? NULL : l-1;
-    l->next = child->next == NULL ? NULL : l+1;
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "id");
-    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1241, 0); goto end; }
-    l->data_object.id = field->valueint;
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "name");
-    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1242, 0); goto end; }
-    m = strlen(field->valuestring);
-    l->data_object.name = malloc(m+1);
-    // TODO: Error check
-    strlcpy(l->data_object.name, field->valuestring, m+1);
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "intValue");
-    if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 1243, 0); goto end; }
-    l->data_object.int_value = field->valueint;
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "stringValue");
-    if (field == NULL || !cJSON_IsString(field)) { cryptolens_set_error(e, 2, 1244, 0); goto end; }
-    m = strlen(field->valuestring);
-    l->data_object.string_value = malloc(m+1);
-    // TODO: Error check
-    strlcpy(l->data_object.string_value, field->valuestring, m+1);
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "referencerType");
-    l->referencer_type = cJSON_IsNumber(field) ? field->valueint : -1;
-
-    field = cJSON_GetObjectItemCaseSensitive(child, "referencerId");
-    l->referencer_id = cJSON_IsNumber(field) ? field->valueint : -1;
-
-    child = child->next;
-    l += 1;
-  }
-
-
+error:
 end:
   cJSON_Delete(json);
 
-  return l_ret;
+  return list;
 }
 
-// TODO: Should return the newly created data object
+// TODO: Should return the newly created data object?
 int
 cryptolens_RP_parse_DO_add(
   cryptolens_error_t * e,
@@ -193,33 +305,34 @@ cryptolens_RP_parse_DO_add(
   cJSON * message = NULL;
   cJSON * id = NULL;
 
-  int X = 1234;
-
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (!json) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 21, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (!result || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 22, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
-      // TODO: Set unknown server reply
-      cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
     }
-    // TODO: parser message
-    cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
   }
 
   id = cJSON_GetObjectItemCaseSensitive(json, "id");
-  if (id == NULL || !cJSON_IsNumber(id)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (!id || !cJSON_IsNumber(id)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 24, 0); goto error; }
 
   data_object = id->valueint;
 
+  goto end;
+
+error:
 end:
   cJSON_Delete(json);
 
@@ -238,28 +351,29 @@ cryptolens_RP_parse_DO_additive(
   cJSON * result = NULL;
   cJSON * message = NULL;
 
-  int X = 1234;
-
-  if (cryptolens_check_error(e)) { goto end; }
+  if (cryptolens_check_error(e)) { goto error; }
 
   json = cJSON_Parse(response);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 25, 0); goto error; }
 
   result = cJSON_GetObjectItemCaseSensitive(json, "result");
-  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, 2, X, 0); goto end; }
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 26, 0); goto error; }
 
   if (result->valueint != 0) {
     message = cJSON_GetObjectItemCaseSensitive(json, "message");
     if (message == NULL || !cJSON_IsString(message)) {
-      // TODO: Set unknown server reply
-      cryptolens_set_error(e, 2, 1, 0);
-      goto end;
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
     }
-    // TODO: parser message
-    cryptolens_set_error(e, 2, 1, 0);
-    goto end;
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
   }
 
+  goto end;
+
+error:
 end:
   cJSON_Delete(json);
 }
@@ -276,10 +390,13 @@ LK_set_feature(
   cJSON * f = NULL;
 
   f = cJSON_GetObjectItemCaseSensitive(json, feature_name);
-  if (f == NULL || !cJSON_IsBool(f)) { cryptolens_set_error(e, 2, 4398, 0); goto end; }
+  if (f == NULL || !cJSON_IsBool(f)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 29, 0); goto error; }
 
   *feature = f->valueint;
 
+  goto end;
+
+error:
 end:
   return;
 }
@@ -295,14 +412,16 @@ cryptolens_RP_parse_license_key(
   cJSON * json = NULL;
   cJSON * field = NULL;
 
+  if (cryptolens_check_error(e)) { goto error; }
+
   json = cJSON_Parse(license_key_string);
-  if (json == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 30, 0); goto error; }
 
   license_key = (cryptolens_LK_t *)malloc(sizeof(cryptolens_LK_t));
-  if (license_key == NULL) { cryptolens_set_error(e, 2, 1, 0); goto end; }
+  if (license_key == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 31, 0); goto error; }
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Expires");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9420, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 32, 0); goto error; }
   license_key->expires = field->valuedouble;
 
   LK_set_feature(e, json, &(license_key->f1), "F1");
@@ -315,28 +434,39 @@ cryptolens_RP_parse_license_key(
   LK_set_feature(e, json, &(license_key->f8), "F8");
 
   field = cJSON_GetObjectItemCaseSensitive(json, "ProductId");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9421, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 33, 0); goto error; }
   license_key->product_id = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Created");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9422, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 34, 0); goto error; }
   license_key->created = field->valuedouble;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Period");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9423, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 35, 0); goto error; }
   license_key->period = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "Block");
-  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9424, 0); goto end; }
+  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 36, 0); goto error; }
   license_key->block = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "TrialActivation");
-  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, 2, 9425, 0); goto end; }
+  if (field == NULL || !cJSON_IsBool(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 37, 0); goto error; }
   license_key->trial_activation = field->valueint;
 
   field = cJSON_GetObjectItemCaseSensitive(json, "SignDate");
-  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 2, 9426, 0); goto end; }
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 38, 0); goto error; }
   license_key->sign_date = field->valuedouble;
+
+  field = cJSON_GetObjectItemCaseSensitive(json, "DataObjects");
+  license_key->data_objects = parse_DO_list(e, field);
+  if(cryptolens_check_error(e)) { goto error; }
+
+  goto end;
+
+error:
+  // TODO: When we add more fields to license_key we need to free those with allocs
+  free(license_key);
+  license_key = NULL;
 
 end:
   cJSON_Delete(json);

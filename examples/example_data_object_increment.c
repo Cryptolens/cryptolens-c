@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cryptolens.h"
+#include "cryptolens/cryptolens.h"
 
 int
 main()
 {
-  cryptolens_error_t e;
+  cryptolens_error_t e; cryptolens_reset_error(&e);
   cryptolens_t * cryptolens = cryptolens_init(&e);
 
   // Increment data object based on data object id

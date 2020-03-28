@@ -1,4 +1,4 @@
-#include "error.h"
+#include "cryptolens/error.h"
 
 int
 cryptolens_check_error(

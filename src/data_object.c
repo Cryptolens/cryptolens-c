@@ -1,14 +1,28 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "cryptolens.h"
+#include "cryptolens/cryptolens.h"
 
 void
 cryptolens_DOL_destroy(cryptolens_DOL_entry_t * o)
 {
-  free(o);
+  if (o == NULL) { return; }
+
+  while (o->prev) { o = o->prev; }
+
+  cryptolens_DOL_entry_t * o_start = o;
+
+  while (o) {
+    free(o->data_object.name);
+    free(o->data_object.string_value);
+
+    o = o->next;
+  }
+
+  free(o_start);
 }
 
+static
 cryptolens_DOL_entry_t *
 list_core(
   cryptolens_error_t * e,
@@ -17,14 +31,23 @@ list_core(
   char const* contains
 )
 {
+  char * response = NULL;
+  cryptolens_DOL_entry_t * data_objects = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
   cryptolens_RHP_add_argument(e, r, "token", token);
   cryptolens_RHP_add_argument(e, r, "Contains", contains);
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
-  char * response = cryptolens_RHP_perform(e, r);
+  response = cryptolens_RHP_perform(e, r);
 
-  cryptolens_DOL_entry_t * data_objects = cryptolens_RP_parse_DO_list(e, NULL, response);
+  data_objects = cryptolens_RP_parse_DO_list(e, NULL, response);
 
+  goto end;
+
+error:
+end:
   free(response);
   cryptolens_RHP_destroy(r);
 
@@ -149,6 +172,9 @@ add_core(
 )
 {
   int data_object = -1;
+  char * response = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
 
   cryptolens_RHP_add_argument(e, r, "token", token);
   cryptolens_RHP_add_argument(e, r, "Name", name);
@@ -157,10 +183,12 @@ add_core(
   cryptolens_RHP_add_argument(e, r, "CheckForDuplicates", check_for_duplicates ? "true" : "false");
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
-  char * response = cryptolens_RHP_perform(e, r);
+  response = cryptolens_RHP_perform(e, r);
 
   data_object = cryptolens_RP_parse_DO_add(e, NULL, response);
 
+error:
+end:
   free(response);
   cryptolens_RHP_destroy(r);
 
@@ -274,16 +302,22 @@ additive_core(
   char const* bound
 )
 {
+  char * response = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
   cryptolens_RHP_add_argument(e, r, "token", token);
   cryptolens_RHP_add_argument(e, r, "IntValue", int_value);
   cryptolens_RHP_add_argument(e, r, "EnableBound", enable_bound ? "true" : "false");
   cryptolens_RHP_add_argument(e, r, "Bound", bound);
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
-  char * response = cryptolens_RHP_perform(e, r);
+  response = cryptolens_RHP_perform(e, r);
 
   cryptolens_RP_parse_DO_additive(e, NULL, response);
 
+error:
+end:
   free(response);
   cryptolens_RHP_destroy(r);
 }

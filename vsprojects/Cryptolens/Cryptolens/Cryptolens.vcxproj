@@ -32,16 +32,15 @@
     <ClCompile Include="..\..\..\third_party\openbsd\strlcpy.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\include\cryptolens.h" />
-    <ClInclude Include="..\..\..\include\decode_base64.h" />
-    <ClInclude Include="..\..\..\include\error.h" />
-    <ClInclude Include="..\..\..\include\machine_code_computer.h" />
-    <ClInclude Include="..\..\..\include\machine_code_computer_static.h" />
-    <ClInclude Include="..\..\..\include\request_handler.h" />
-    <ClInclude Include="..\..\..\include\response_parser.h" />
-    <ClInclude Include="..\..\..\include\response_parser_cJSON.h" />
-    <ClInclude Include="..\..\..\include\signature_verifier.h" />
-    <ClInclude Include="..\..\..\third_party\cJSON\cJSON.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\cryptolens.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\data_objects.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\error.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\internal\decode_base64.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\machine_code_computer.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\machine_code_computer_static.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\request_handler.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\response_parser.h" />
+    <ClInclude Include="..\..\..\include\cryptolens\signature_verifier.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

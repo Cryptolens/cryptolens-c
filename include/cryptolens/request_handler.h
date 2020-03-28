@@ -2,6 +2,10 @@
 
 #include "error.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct cryptolens_RH cryptolens_RH_t;
 typedef struct cryptolens_RHP_builder cryptolens_RHP_builder_t;
 //#ifdef CRYPTOLENS_COMPILING
@@ -28,3 +32,7 @@ cryptolens_RHP_add_argument(cryptolens_error_t *, cryptolens_RHP_builder_t *, ch
 
 char *
 cryptolens_RHP_perform(cryptolens_error_t *, cryptolens_RHP_builder_t *);
+
+#ifdef __cplusplus
+}
+#endif

@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cryptolens.h"
-#include "machine_code_computer_static.h"
+#include "cryptolens/cryptolens.h"
+#include "cryptolens/machine_code_computer_static.h"
+
+void
+cryptolens_MC_destroy();
 
 int
 main()
 {
-  cryptolens_error_t e;
-  cryptolens_reset_error(&e);
+  cryptolens_error_t e; cryptolens_reset_error(&e);
   cryptolens_t * cryptolens = cryptolens_init(&e);
   cryptolens_LK_t * license_key = NULL;
 
@@ -24,6 +26,21 @@ main()
     printf("Activation was successful! Expires at %lld\nF1: %d  F2: %d    F3: %d    F4: %d    F5: %d    F6: %d    F7: %d  F8: %d\n",
       license_key->expires, license_key->f1, license_key->f2, license_key->f3, license_key->f4, license_key->f5, license_key->f6, license_key->f7, license_key->f8
     );
+
+    printf("\nData objects:\n");
+    cryptolens_DOL_entry_t * entry = license_key->data_objects;
+    while (entry) {
+      cryptolens_DO_t * o = &entry->data_object;
+
+      printf("Id: %d\n", o->id);
+      printf("Name: %s\n", o->name);
+      printf("String value: %s\n", o->string_value);
+      printf("Int value: %d\n" , o->int_value);
+
+      entry = entry->next;
+
+      if (entry) { printf("\n"); }
+    }
   }
 
   cryptolens_LK_destroy(license_key);

@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cryptolens.h>
+#include <cryptolens/cryptolens.h>
 
 int
 main() {
-  cryptolens_error_t e;
-  cryptolens_reset_error(&e);
+  cryptolens_error_t e; cryptolens_reset_error(&e);
   cryptolens_signature_verifier_t* signature_verifier = cryptolens_SV_init(&e);
   cryptolens_LK_t * license_key = NULL;
 

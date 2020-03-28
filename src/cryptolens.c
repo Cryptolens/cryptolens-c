@@ -2,22 +2,36 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "internal/decode_base64.h"
-#include "cryptolens.h"
+#include "cryptolens/internal/decode_base64.h"
+#include "cryptolens/cryptolens.h"
 
 cryptolens_t *
 cryptolens_init(
   cryptolens_error_t * e
 )
 {
-  cryptolens_t * o = malloc(sizeof(cryptolens_t));
-  if (o == NULL) { }  // TODO
+  cryptolens_t * o = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  o = malloc(sizeof(cryptolens_t));
+  if (o == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_ALLOC_FAILED, 0); goto error; }
 
   o->rh = cryptolens_RH_new(e);
-  if (cryptolens_check_error(e)) { } // TODO
+  if (cryptolens_check_error(e)) { goto error; }
 
   o->signature_verifier = cryptolens_SV_init(e);
-  if (cryptolens_check_error(e)) { } // TODO
+  if (cryptolens_check_error(e)) { goto error; }
+
+  goto end;
+
+error:
+  if (o) {
+    cryptolens_RH_destroy(o->rh);
+    cryptolens_SV_destroy(o->signature_verifier);
+  }
+
+  free(o);
 
 end:
   return o;
@@ -28,8 +42,10 @@ cryptolens_destroy(
   cryptolens_t * o
 )
 {
-  cryptolens_SV_destroy(o->signature_verifier);
+  if (o == NULL) { return; }
+
   cryptolens_RH_destroy(o->rh);
+  cryptolens_SV_destroy(o->signature_verifier);
   free(o);
 }
 
@@ -38,6 +54,10 @@ cryptolens_LK_destroy(
   cryptolens_LK_t * license_key
 )
 {
+  if (license_key == NULL) { return; }
+
+  cryptolens_DOL_destroy(license_key->data_objects);
+
   free(license_key);
 }
 
@@ -48,6 +68,8 @@ cryptolens_set_modulus_base64(
   char const* modulus_base64
 )
 {
+  if (!o) { return; }
+
   cryptolens_SV_set_modulus_base64(e, o->signature_verifier, modulus_base64);
 }
 
@@ -58,6 +80,8 @@ cryptolens_set_exponent_base64(
   char const* exponent_base64
 )
 {
+  if (!o) { return; }
+
   cryptolens_SV_set_exponent_base64(e, o->signature_verifier, exponent_base64);
 }
 
@@ -88,10 +112,13 @@ cryptolens_handle_activate_response(
   cryptolens_IN_decode_base64(e, signature_base64, &signature, &signature_len);
 
   valid = cryptolens_SV_verify(e, signature_verifier, license_key, license_key_len, signature, signature_len);
-  if (!valid) { cryptolens_weak_set_error(e, 1234, 2345, 589248); goto end; }
+  if (!valid) { cryptolens_weak_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_INVALID_SIGNATURE, 0); goto error; }
 
   lk = cryptolens_RP_parse_license_key(e, NULL, license_key);
 
+  goto end;
+
+error:
 end:
   free(license_key);
   free(signature);
@@ -137,7 +164,12 @@ cryptolens_IN_deactivate(
   char const* machine_code
 )
 {
-  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, rh, "api/key/Deactivate");
+  cryptolens_RHP_builder_t* r = NULL;
+  char * response = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  r = cryptolens_RHP_new(e, rh, "api/key/Deactivate");
 
   if (machine_code == NULL) { machine_code = cryptolens_MC_get_machine_code(e); }
 
@@ -147,11 +179,14 @@ cryptolens_IN_deactivate(
   cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
-  char * response = cryptolens_RHP_perform(e, r);
+  response = cryptolens_RHP_perform(e, r);
   
-  //printf("%s\n", response);
-  // TODO: Check response
+  cryptolens_RP_parse_deactivate_response(e, NULL, response);
 
+  goto end;
+
+error:
+end:
   free(response);
   cryptolens_RHP_destroy(r);
 }
@@ -168,7 +203,12 @@ cryptolens_IN_activate(
 )
 {
   cryptolens_LK_t * license_key = NULL;
-  cryptolens_RHP_builder_t * r = cryptolens_RHP_new(e, rh, "api/key/Activate");
+  cryptolens_RHP_builder_t * r = NULL;
+  char * response = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  r = cryptolens_RHP_new(e, rh, "api/key/Activate");
 
   if (machine_code == NULL) { machine_code = cryptolens_MC_get_machine_code(e); }
 
@@ -181,10 +221,14 @@ cryptolens_IN_activate(
   cryptolens_RHP_add_argument(e, r, "SignMethod", "1");
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
-  char * response = cryptolens_RHP_perform(e, r);
+  response = cryptolens_RHP_perform(e, r);
 
   license_key = cryptolens_handle_activate_response(e, signature_verifier, response);
 
+  goto end;
+
+error:
+end:
   free(response);
   cryptolens_RHP_destroy(r);
 

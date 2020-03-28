@@ -2,6 +2,10 @@
 
 #include "cryptolens.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 cryptolens_RP_parse_activate_response(
   cryptolens_error_t *,
@@ -9,6 +13,13 @@ cryptolens_RP_parse_activate_response(
   char const*,
   char **,
   char **
+);
+
+void
+cryptolens_RP_parse_deactivate_response(
+  cryptolens_error_t *,
+  void *,
+  char const*
 );
 
 cryptolens_DOL_entry_t *
@@ -38,3 +49,7 @@ cryptolens_RP_parse_license_key(
   void *,
   char const*
 );
+
+#ifdef __cplusplus
+}
+#endif

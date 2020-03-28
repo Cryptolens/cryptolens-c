@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cryptolens.h"
-#include "machine_code_computer_static.h"
+#include "cryptolens/cryptolens.h"
+#include "cryptolens/machine_code_computer_static.h"
 
 void
 print_data_objects(cryptolens_error_t * e, cryptolens_DOL_entry_t * o)
@@ -20,7 +20,7 @@ print_data_objects(cryptolens_error_t * e, cryptolens_DOL_entry_t * o)
 int
 main()
 {
-  cryptolens_error_t e;
+  cryptolens_error_t e; cryptolens_reset_error(&e);
   cryptolens_t * cryptolens = cryptolens_init(&e);
   cryptolens_DOL_entry_t * data_objects = NULL;
 
