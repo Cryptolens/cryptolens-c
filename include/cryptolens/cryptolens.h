@@ -80,6 +80,18 @@ cryptolens_activate(
   char const*
 );
 
+cryptolens_LK_t *
+cryptolens_activate_floating(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const*,
+  char const*,
+  char const*,
+  char const*,
+  char const*
+);
+
+
 void
 cryptolens_deactivate(
   cryptolens_error_t *,
@@ -114,6 +126,19 @@ cryptolens_IN_activate(
   char const*,
   char const*
 );
+
+cryptolens_LK_t *
+cryptolens_IN_activate_floating(
+  cryptolens_error_t *,
+  cryptolens_RH_t *,
+  cryptolens_signature_verifier_t *,
+  char const*,
+  char const*,
+  char const*,
+  char const*,
+  char const*
+);
+
 
 void
 cryptolens_IN_deactivate(

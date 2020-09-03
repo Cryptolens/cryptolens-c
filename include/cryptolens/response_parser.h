@@ -16,6 +16,16 @@ cryptolens_RP_parse_activate_response(
 );
 
 void
+cryptolens_RP_parse_activate_floating_response(
+  cryptolens_error_t *,
+  void *,
+  char const*,
+  char **,
+  char **,
+  char const*
+);
+
+void
 cryptolens_RP_parse_deactivate_response(
   cryptolens_error_t *,
   void *,

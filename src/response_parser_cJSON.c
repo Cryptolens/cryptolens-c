@@ -122,6 +122,80 @@ end:
 }
 
 void
+cryptolens_RP_parse_activate_floating_response(
+  cryptolens_error_t * e,
+  void * o,
+  char const* response,
+  char ** licenseKeyBase64,
+  char ** signatureBase64,
+  char const* floating_interval
+)
+{
+  size_t n;
+  cJSON * json = NULL;
+  cJSON * result = NULL;
+  cJSON * message = NULL;
+  cJSON * licenseKey = NULL;
+  cJSON * signature = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  *licenseKeyBase64 = NULL;
+  *signatureBase64 = NULL;
+
+  json = cJSON_Parse(response);
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 41, 0); goto error; }
+
+  result = cJSON_GetObjectItemCaseSensitive(json, "result");
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 42, 0); goto error; }
+
+  if (result->valueint != 0) {
+    message = cJSON_GetObjectItemCaseSensitive(json, "message");
+    if (message == NULL || !cJSON_IsString(message)) {
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
+    }
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
+  }
+
+  licenseKey = cJSON_GetObjectItemCaseSensitive(json, "licenseKey");
+  if (licenseKey == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 45, 0); goto error; }
+
+  signature = cJSON_GetObjectItemCaseSensitive(json, "signature");
+  if (signature == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 46, 0); goto error; }
+
+  if (!cJSON_IsString(licenseKey) || !cJSON_IsString(signature)) {
+    cryptolens_set_error(e, CRYPTOLENS_ES_RP, 47, 0);
+    goto error;
+  }
+
+  n = strlen(licenseKey->valuestring);
+  *licenseKeyBase64 = malloc(n + 1);
+  if (*licenseKeyBase64 == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 48, 0); goto error; }
+  strlcpy(*licenseKeyBase64, licenseKey->valuestring, n+1);
+
+  n = strlen(signature->valuestring);
+  *signatureBase64 = malloc(n + 1);
+  if (*signatureBase64 == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 49, 0); goto error; }
+  strlcpy(*signatureBase64, signature->valuestring, n+1);
+
+  goto end;
+
+error:
+    free(*licenseKeyBase64);
+    free(*signatureBase64);
+
+    *licenseKeyBase64 = NULL;
+    *signatureBase64 = NULL;
+
+end:
+  cJSON_Delete(json);
+}
+
+void
 cryptolens_RP_parse_deactivate_response(
   cryptolens_error_t * e,
   void * o,

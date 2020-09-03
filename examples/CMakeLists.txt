@@ -14,6 +14,10 @@ add_executable(example_activate example_activate.c)
 target_link_libraries(example_activate cryptolens)
 target_link_libraries(example_activate curl crypto ssl)
 
+add_executable(example_activate_floating example_activate_floating.c)
+target_link_libraries(example_activate_floating cryptolens)
+target_link_libraries(example_activate_floating curl crypto ssl)
+
 add_executable(example_data_object_add  example_data_object_add.c)
 target_link_libraries(example_data_object_add cryptolens)
 target_link_libraries(example_data_object_add curl crypto ssl)
