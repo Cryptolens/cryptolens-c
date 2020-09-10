@@ -103,6 +103,16 @@ cryptolens_deactivate(
 );
 
 void
+cryptolens_deactivate_floating(
+  cryptolens_error_t *,
+  cryptolens_t *,
+  char const*,
+  char const*,
+  char const*,
+  char const*
+);
+
+void
 cryptolens_set_modulus_base64(
   cryptolens_error_t *,
   cryptolens_t *,
@@ -142,6 +152,16 @@ cryptolens_IN_activate_floating(
 
 void
 cryptolens_IN_deactivate(
+  cryptolens_error_t *,
+  cryptolens_RH_t *,
+  char const*,
+  char const*,
+  char const*,
+  char const*
+);
+
+void
+cryptolens_IN_deactivate_floating(
   cryptolens_error_t *,
   cryptolens_RH_t *,
   char const*,

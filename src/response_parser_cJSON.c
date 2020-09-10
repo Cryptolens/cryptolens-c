@@ -234,6 +234,45 @@ end:
   cJSON_Delete(json);
 }
 
+void
+cryptolens_RP_parse_deactivate_floating_response(
+  cryptolens_error_t * e,
+  void * o,
+  char const* response
+)
+{
+  size_t n;
+  cJSON * json = NULL;
+  cJSON * result = NULL;
+  cJSON * message = NULL;
+
+  if (cryptolens_check_error(e)) { goto error; }
+
+  json = cJSON_Parse(response);
+  if (json == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 39, 0); goto error; }
+
+  result = cJSON_GetObjectItemCaseSensitive(json, "result");
+  if (result == NULL || !cJSON_IsNumber(result)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 40, 0); goto error; }
+
+  if (result->valueint != 0) {
+    message = cJSON_GetObjectItemCaseSensitive(json, "message");
+    if (message == NULL || !cJSON_IsString(message)) {
+      cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_UNKNOWN_SERVER_REPLY, 0);
+      goto error;
+    }
+
+    int reason = activate_parse_server_error_message(message->valuestring);
+    cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, reason, 0);
+    goto error;
+  }
+
+  goto end;
+
+error:
+end:
+  cJSON_Delete(json);
+}
+
 static
 cryptolens_DOL_entry_t *
 parse_DO_list(

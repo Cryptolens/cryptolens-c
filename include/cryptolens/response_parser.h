@@ -32,6 +32,13 @@ cryptolens_RP_parse_deactivate_response(
   char const*
 );
 
+void
+cryptolens_RP_parse_deactivate_floating_response(
+  cryptolens_error_t *,
+  void *,
+  char const*
+);
+
 cryptolens_DOL_entry_t *
 cryptolens_RP_parse_DO_list(
   cryptolens_error_t *,
