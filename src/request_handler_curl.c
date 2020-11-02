@@ -41,14 +41,14 @@ cryptolens_RH_new(cryptolens_error_t * e)
   o = malloc(sizeof(cryptolens_RH_t));
   if (!o) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, CRYPTOLENS_ER_ALLOC_FAILED, 1); goto error; }
 
-  o->curl = curl_easy_init();  
+  o->curl = curl_easy_init();
   if (!o->curl) { cryptolens_set_error(e, CRYPTOLENS_ES_RH, 2, 0); goto error; }
 
   goto end;
 
 error:
   if (o) {
-    curl_easy_cleanup(o->curl); 
+    curl_easy_cleanup(o->curl);
   }
 
   free(o);

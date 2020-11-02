@@ -4,6 +4,9 @@ typedef struct cryptolens cryptolens_t;
 typedef struct cryptolens_DO cryptolens_DO_t;
 typedef struct cryptolens_DOL_entry cryptolens_DOL_entry_t;
 typedef struct cryptolens_LK cryptolens_LK_t;
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+typedef struct cryptolens_RS cryptolens_RS_t;
+#endif
 
 #include "error.h"
 #include "data_objects.h"
@@ -41,8 +44,25 @@ struct cryptolens_LK {
   long long maxnoofmachines;
   void * allowed_machines;
   cryptolens_DOL_entry_t * data_objects;
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+  cryptolens_RS_t * reseller;
+#endif
   long long sign_date;
 };
+
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+struct cryptolens_RS {
+  int id;
+  int invite_id;
+  int reseller_user_id;
+  long long created;
+  char * name;
+  char * url;
+  char * email;
+  char * phone;
+  char * description;
+};
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +87,7 @@ cryptolens_LK_t *
 cryptolens_handle_activate_response(
   cryptolens_error_t *,
   cryptolens_signature_verifier_t *,
-  char const* 
+  char const*
 );
 
 cryptolens_LK_t *

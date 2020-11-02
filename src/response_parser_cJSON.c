@@ -392,7 +392,7 @@ cryptolens_RP_parse_DO_list(
   data_objects = cJSON_GetObjectItemCaseSensitive(json, "dataObjects");
   if (data_objects == NULL || !cJSON_IsArray(data_objects)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 14, 0); goto error; }
 
-  list = parse_DO_list(e, data_objects); 
+  list = parse_DO_list(e, data_objects);
 
   goto end;
 
@@ -491,6 +491,115 @@ end:
   cJSON_Delete(json);
 }
 
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+static
+cryptolens_RS_t *
+parse_RS(
+  cryptolens_error_t * e,
+  cJSON * json
+)
+{
+  cryptolens_RS_t * reseller = NULL;
+  cJSON * field = NULL;
+  size_t m = 0;
+
+  if (cryptolens_check_error(e)) { goto end; }
+
+  if (!cJSON_IsObject(json)) { goto end; }
+
+  reseller = malloc(sizeof(cryptolens_RS_t));
+  if (!reseller) { cryptolens_set_error(e, 123, 3, 0); goto error; }
+
+  reseller->id = 0;
+  reseller->invite_id = 0;
+  reseller->reseller_user_id = 0;
+  reseller->created = 0;
+  reseller->name = NULL;
+  reseller->url = NULL;
+  reseller->email = NULL;
+  reseller->phone = NULL;
+  reseller->description = NULL;
+
+  field = cJSON_GetObjectItem(json, "Id");
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 123, 4, 0); goto error; }
+  reseller->id = field->valueint;
+
+  field = cJSON_GetObjectItem(json, "InviteId");
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 123, 4, 0); goto error; }
+  reseller->id = field->valueint;
+
+  field = cJSON_GetObjectItem(json, "ResellerUserId");
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 123, 4, 0); goto error; }
+  reseller->id = field->valueint;
+
+  field = cJSON_GetObjectItem(json, "Created");
+  if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, 123, 11, 0); goto error; }
+  reseller->created = field->valuedouble;
+
+  field = cJSON_GetObjectItem(json, "Name");
+  if (field == NULL || !cJSON_IsString(field)) { reseller->name = calloc(1, 1); }
+  else {
+    m = strlen(field->valuestring);
+    reseller->name = malloc(m+1);
+    if (!reseller->name) { cryptolens_set_error(e, 123, 6, 0); goto error; }
+    strlcpy(reseller->name, field->valuestring, m+1);
+  }
+
+  field = cJSON_GetObjectItem(json, "Url");
+  if (field == NULL || !cJSON_IsString(field)) { reseller->url = calloc(1, 1); }
+  else {
+    m = strlen(field->valuestring);
+    reseller->url = malloc(m+1);
+    if (!reseller->url) { cryptolens_set_error(e, 123, 8, 0); goto error; }
+    strlcpy(reseller->url, field->valuestring, m+1);
+  }
+
+  field = cJSON_GetObjectItem(json, "Email");
+  if (field == NULL || !cJSON_IsString(field)) { reseller->email = calloc(1, 1); }
+  else {
+    m = strlen(field->valuestring);
+    reseller->email = malloc(m+1);
+    if (!reseller->email) { cryptolens_set_error(e, 123, 8, 0); goto error; }
+    strlcpy(reseller->email, field->valuestring, m+1);
+  }
+
+  field = cJSON_GetObjectItem(json, "Phone");
+  if (field == NULL || !cJSON_IsString(field)) { reseller->phone = calloc(1, 1); }
+  else {
+    m = strlen(field->valuestring);
+    reseller->phone = malloc(m+1);
+    if (!reseller->phone) { cryptolens_set_error(e, 123, 8, 0); goto error; }
+    strlcpy(reseller->phone, field->valuestring, m+1);
+  }
+
+  field = cJSON_GetObjectItem(json, "Description");
+  if (field == NULL || !cJSON_IsString(field)) { reseller->description = calloc(1, 1); }
+  else {
+    m = strlen(field->valuestring);
+   reseller->description = malloc(m+1);
+    if (!reseller->description) { cryptolens_set_error(e, 123, 10, 0); goto error; }
+    strlcpy(reseller->description, field->valuestring, m+1);
+  }
+
+  goto end;
+
+error:
+  if (reseller) {
+    free(reseller->name);
+    free(reseller->url);
+    free(reseller->email);
+    free(reseller->phone);
+    free(reseller->description);
+  }
+
+  free(reseller);
+  reseller = NULL;
+
+end:
+  return reseller;
+}
+#endif
+
 static
 void
 LK_set_feature(
@@ -533,6 +642,16 @@ cryptolens_RP_parse_license_key(
   license_key = (cryptolens_LK_t *)malloc(sizeof(cryptolens_LK_t));
   if (license_key == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 31, 0); goto error; }
 
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+  license_key->key = NULL;
+  license_key->notes = NULL;
+  license_key->customer = NULL;
+  license_key->activated_machines = NULL;
+  license_key->allowed_machines = NULL;
+  license_key->data_objects = NULL;
+  license_key->reseller = NULL;
+#endif
+
   field = cJSON_GetObjectItemCaseSensitive(json, "Expires");
   if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 32, 0); goto error; }
   license_key->expires = field->valuedouble;
@@ -574,11 +693,16 @@ cryptolens_RP_parse_license_key(
   license_key->data_objects = parse_DO_list(e, field);
   if(cryptolens_check_error(e)) { goto error; }
 
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+  field = cJSON_GetObjectItem(json, "Reseller");
+  license_key->reseller = parse_RS(e, field);
+  if(cryptolens_check_error(e)) { goto error; }
+#endif
+
   goto end;
 
 error:
-  // TODO: When we add more fields to license_key we need to free those with allocs
-  free(license_key);
+  cryptolens_LK_destroy(license_key);
   license_key = NULL;
 
 end:

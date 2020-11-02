@@ -19,7 +19,7 @@ cryptolens_SV_init(
   cryptolens_signature_verifier_t* o = NULL;
 
   if (cryptolens_check_error(e)) { goto error; }
-	  
+
   o = (cryptolens_signature_verifier_t*)malloc(sizeof(cryptolens_signature_verifier_t));
   if (o == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_SV, CRYPTOLENS_ER_ALLOC_FAILED, 1); goto error;  }
 

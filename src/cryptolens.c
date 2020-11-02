@@ -5,6 +5,14 @@
 #include "cryptolens/internal/decode_base64.h"
 #include "cryptolens/cryptolens.h"
 
+#ifndef CRYPTOLENS_ACTIVATE_MODEL_VERSION
+#define CRYPTOLENS_ACTIVATE_MODEL_VERSION "3"
+#endif
+
+#ifndef CRYPTOLENS_ACTIVATE_FLOATING_MODEL_VERSION
+#define CRYPTOLENS_ACTIVATE_FLOATING_MODEL_VERSION "3"
+#endif
+
 cryptolens_t *
 cryptolens_init(
   cryptolens_error_t * e
@@ -55,6 +63,17 @@ cryptolens_LK_destroy(
 )
 {
   if (license_key == NULL) { return; }
+
+#ifndef CRYPTOLENS_DISABLE_RESELLER
+  if (license_key->reseller) {
+    free(license_key->reseller->name);
+    free(license_key->reseller->url);
+    free(license_key->reseller->email);
+    free(license_key->reseller->phone);
+    free(license_key->reseller->description);
+  }
+  free(license_key->reseller);
+#endif
 
   cryptolens_DOL_destroy(license_key->data_objects);
 
@@ -252,7 +271,7 @@ cryptolens_IN_deactivate(
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
   response = cryptolens_RHP_perform(e, r);
-  
+
   cryptolens_RP_parse_deactivate_response(e, NULL, response);
 
   goto end;
@@ -290,7 +309,7 @@ cryptolens_IN_deactivate_floating(
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
   response = cryptolens_RHP_perform(e, r);
-  
+
   cryptolens_RP_parse_deactivate_floating_response(e, NULL, response);
 
   goto end;
@@ -329,6 +348,7 @@ cryptolens_IN_activate(
   cryptolens_RHP_add_argument(e, r, "Sign", "true");
   cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
 //  add_argument(e, r, "FieldsToReturn", "0");
+  cryptolens_RHP_add_argument(e, r, "ModelVersion", CRYPTOLENS_ACTIVATE_MODEL_VERSION);
   cryptolens_RHP_add_argument(e, r, "SignMethod", "1");
   cryptolens_RHP_add_argument(e, r, "v", "1");
 
@@ -375,6 +395,7 @@ cryptolens_IN_activate_floating(
   cryptolens_RHP_add_argument(e, r, "Sign", "true");
   cryptolens_RHP_add_argument(e, r, "MachineCode", machine_code);
 //  add_argument(e, r, "FieldsToReturn", "0");
+  cryptolens_RHP_add_argument(e, r, "ModelVersion", CRYPTOLENS_ACTIVATE_FLOATING_MODEL_VERSION);
   cryptolens_RHP_add_argument(e, r, "SignMethod", "1");
   cryptolens_RHP_add_argument(e, r, "FloatingTimeInterval", floating_interval);
   cryptolens_RHP_add_argument(e, r, "v", "1");
