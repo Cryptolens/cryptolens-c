@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "cJSON.h"
 
 #include "cryptolens/internal/decode_base64.h"
 #include "cryptolens/cryptolens.h"
@@ -412,4 +413,58 @@ end:
   cryptolens_RHP_destroy(r);
 
   return license_key;
+}
+
+int
+cryptolens_LK_has_feature_template(cryptolens_LK_t * license_key, char const* key)
+{
+
+  char const* json_string = NULL;
+
+  if (license_key == NULL) { return 0; }
+  json_string = license_key->notes;
+  if (json_string == NULL) { return 0; }
+
+  cJSON * json = cJSON_Parse(json_string);
+  if (json == NULL) { return 0; }
+  if (!cJSON_IsArray(json)) { return 0; }
+
+  cJSON * w;
+  cJSON * v = json;
+  char const* p = key;
+  char const* q = key;
+  while (1) {
+    while (*q != '.' && *q != '\0') { ++q; }
+
+    w = NULL;
+    cJSON * u;
+    cJSON_ArrayForEach(u, v) {
+      char const* c1 = p;
+      char const* c2 = NULL;
+      if (cJSON_IsString(u)) {
+        c2 = u->valuestring;
+      } else if (cJSON_IsArray(u) && cJSON_GetArraySize(u) > 0) {
+        cJSON * e = cJSON_GetArrayItem(u, 0);
+        if (cJSON_IsString(e)) { c2 = e->valuestring; }
+      }
+
+      if (c2 == NULL) { continue; }
+
+      while (c1 < q && *c2 != '\0') {
+        if (*c1 != *c2) { break; }
+        c1++; c2++;
+      }
+
+      if (c1 == q && *c2 == '\0') { w = u; break; }
+    }
+
+    if (w == NULL) { return 0; }
+
+    v = w;
+
+    if (*q == '\0') { return 1; }
+    else            { p = q = q+1; }
+  }
+
+  return 0;
 }

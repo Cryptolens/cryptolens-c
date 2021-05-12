@@ -633,6 +633,7 @@ cryptolens_RP_parse_license_key(
   cryptolens_LK_t * license_key = NULL;
   cJSON * json = NULL;
   cJSON * field = NULL;
+  size_t n = 0;
 
   if (cryptolens_check_error(e)) { goto error; }
 
@@ -688,6 +689,14 @@ cryptolens_RP_parse_license_key(
   field = cJSON_GetObjectItemCaseSensitive(json, "SignDate");
   if (field == NULL || !cJSON_IsNumber(field)) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 38, 0); goto error; }
   license_key->sign_date = field->valuedouble;
+
+  field = cJSON_GetObjectItemCaseSensitive(json, "Notes");
+  if (field != NULL && cJSON_IsString(field)) {
+    n = strlen(field->valuestring);
+    license_key->notes = malloc(n+1);
+    if (license_key->notes == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_RP, 44, 0); goto error; }
+    strlcpy(license_key->notes, field->valuestring, n+1);
+  }
 
   field = cJSON_GetObjectItemCaseSensitive(json, "DataObjects");
   license_key->data_objects = parse_DO_list(e, field);
