@@ -8,7 +8,7 @@
 #include "cryptolens/error.h"
 #include "cryptolens/request_handler.h"
 
-static char const BASE_URL[] = "https://app.cryptolens.io/";
+static char const BASE_URL[] = "https://api.cryptolens.io/";
 
 struct cryptolens_RH {
   CURL *curl;
