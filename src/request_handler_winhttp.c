@@ -183,6 +183,8 @@ cryptolens_RHP_add_argument(cryptolens_error_t * e, cryptolens_RHP_builder_t * o
 {
   if (cryptolens_check_error(e)) { goto error; }
 
+  if (key == NULL || value == NULL) { return; }
+
   if (o->separator != '&') {
     o->separator = '&';
   } else {

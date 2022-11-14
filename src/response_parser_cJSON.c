@@ -202,7 +202,7 @@ cryptolens_RP_parse_deactivate_response(
   char const* response
 )
 {
-  size_t n;
+  //size_t n;
   cJSON * json = NULL;
   cJSON * result = NULL;
   cJSON * message = NULL;
@@ -241,7 +241,7 @@ cryptolens_RP_parse_deactivate_floating_response(
   char const* response
 )
 {
-  size_t n;
+  //size_t n;
   cJSON * json = NULL;
   cJSON * result = NULL;
   cJSON * message = NULL;
@@ -412,7 +412,7 @@ cryptolens_RP_parse_DO_add(
 )
 {
   int data_object = 0;
-  size_t n;
+  //size_t n;
   cJSON * json = NULL;
   cJSON * result = NULL;
   cJSON * message = NULL;
@@ -459,7 +459,7 @@ cryptolens_RP_parse_DO_additive(
   char const* response
 )
 {
-  size_t n;
+  //size_t n;
   cJSON * json = NULL;
   cJSON * result = NULL;
   cJSON * message = NULL;

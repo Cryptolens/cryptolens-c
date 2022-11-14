@@ -21,27 +21,25 @@ cryptolens_init(
 {
   cryptolens_t * o = NULL;
 
-  if (cryptolens_check_error(e)) { goto error; }
+  if (cryptolens_check_error(e)) { goto end; }
 
   o = malloc(sizeof(cryptolens_t));
-  if (o == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_ALLOC_FAILED, 0); goto error; }
+  if (o == NULL) { cryptolens_set_error(e, CRYPTOLENS_ES_MAIN, CRYPTOLENS_ER_ALLOC_FAILED, 0); goto error_malloc; }
 
   o->rh = cryptolens_RH_new(e);
-  if (cryptolens_check_error(e)) { goto error; }
+  if (cryptolens_check_error(e)) { goto error_rh; }
 
   o->signature_verifier = cryptolens_SV_init(e);
-  if (cryptolens_check_error(e)) { goto error; }
+  if (cryptolens_check_error(e)) { goto error_sv; }
 
   goto end;
 
-error:
-  if (o) {
-    cryptolens_RH_destroy(o->rh);
-    cryptolens_SV_destroy(o->signature_verifier);
-  }
-
+error_sv:
+  cryptolens_SV_destroy(o->signature_verifier);
+error_rh:
+  cryptolens_RH_destroy(o->rh);
   free(o);
-
+error_malloc:
 end:
   return o;
 }
@@ -336,12 +334,21 @@ cryptolens_IN_activate(
   cryptolens_LK_t * license_key = NULL;
   cryptolens_RHP_builder_t * r = NULL;
   char * response = NULL;
+  char * machine_code_ = NULL;
 
   if (cryptolens_check_error(e)) { goto error; }
 
   r = cryptolens_RHP_new(e, rh, "api/key/Activate");
 
-  if (machine_code == NULL) { machine_code = cryptolens_MC_get_machine_code(e); }
+  if (machine_code == NULL) {
+    machine_code_ = cryptolens_MC_get_machine_code(e);
+    machine_code = machine_code_;
+  }
+
+  if (machine_code == NULL) {
+    cryptolens_set_error(e, 8520, 0, 0);
+    goto error;
+  }
 
   cryptolens_RHP_add_argument(e, r, "token", token);
   cryptolens_RHP_add_argument(e, r, "ProductId", product_id);
@@ -356,6 +363,8 @@ cryptolens_IN_activate(
   response = cryptolens_RHP_perform(e, r);
 
   license_key = cryptolens_handle_activate_response(e, signature_verifier, response);
+
+  cryptolens_MC_destroy_machine_code(machine_code_);
 
   goto end;
 

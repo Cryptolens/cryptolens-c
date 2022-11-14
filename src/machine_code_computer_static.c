@@ -12,12 +12,18 @@ strlcpy(char *dst, const char *src, size_t dsize);
 static char * machine_code = "";
 static int should_free = 0;
 
-char const*
+char *
 cryptolens_MC_get_machine_code(
   cryptolens_error_t * e
 )
 {
   return machine_code;
+}
+
+void
+cryptolens_MC_destroy_machine_code(char * machine_code)
+{
+  return;
 }
 
 void
